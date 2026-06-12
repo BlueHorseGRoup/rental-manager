@@ -216,6 +216,39 @@ window.googleSignOut = async function() {
 [data-font="system"]   { --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
 [data-font="roboto"]   { --font-body:'Trebuchet MS','Arial',sans-serif; }
 
+/* ── ACCENT COLOURS ── */
+[data-accent="orange"] { --accent:#c17f3e; --accent2:#a66b2e; }
+[data-accent="blue"]   { --accent:#3b82f6; --accent2:#2563eb; }
+[data-accent="green"]  { --accent:#16a34a; --accent2:#15803d; }
+[data-accent="purple"] { --accent:#9333ea; --accent2:#7e22ce; }
+[data-accent="red"]    { --accent:#dc2626; --accent2:#b91c1c; }
+[data-accent="pink"]   { --accent:#ec4899; --accent2:#db2777; }
+[data-accent="teal"]   { --accent:#0d9488; --accent2:#0f766e; }
+
+/* ── CALENDAR ── */
+.cal-wrap{overflow-x:auto;padding-bottom:8px}
+.cal-controls{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.cal-controls select{height:36px;padding:0 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:14px;font-family:var(--font-body)}
+.cal-driver-sel{flex:1;min-width:180px}
+.cal-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;min-width:700px}
+@media(max-width:900px){.cal-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:500px){.cal-grid{grid-template-columns:repeat(2,1fr)}}
+.cal-month{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.cal-month-hdr{background:var(--nav-bg);color:#fff;font-size:10px;font-weight:700;text-align:center;padding:5px;text-transform:uppercase;letter-spacing:0.07em}
+.cal-month-days{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);padding:1px}
+.cal-day-hdr{background:var(--surface2);font-size:8px;font-weight:600;text-align:center;padding:3px 0;color:var(--text3)}
+.cal-day{background:var(--surface);font-size:10px;text-align:center;padding:4px 1px;min-height:20px;display:flex;align-items:center;justify-content:center;position:relative;transition:background .1s}
+.cal-day.empty{background:var(--bg);cursor:default}
+.cal-day.wk{cursor:pointer;font-weight:700;border-left:2px solid var(--accent)}
+.cal-day.wk:hover{background:var(--amber-bg)}
+.cal-day.paid{background:var(--green-bg)!important;color:var(--green);font-weight:700}
+.cal-day.partial{background:var(--amber-bg)!important;color:var(--amber);font-weight:700}
+.cal-day.missed{background:var(--red-bg)!important;color:var(--red);font-weight:600}
+.cal-day.today{outline:2px solid var(--accent);outline-offset:-2px;border-radius:2px}
+.cal-legend{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;font-size:12px;color:var(--text2)}
+.cal-legend span{display:flex;align-items:center;gap:5px}
+.cal-legend-dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;transition:background .25s,color .25s;padding-bottom:env(safe-area-inset-bottom)}
 
@@ -626,6 +659,18 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
       <button class="sp-opt" data-font="roboto" onclick="setFont('roboto')">Rounded</button>
     </div>
   </div>
+  <div class="sp-section">
+    <span class="sp-label">🎨 Accent Colour</span>
+    <div class="sp-options">
+      <button class="sp-opt active" data-accent="orange" onclick="setAccent('orange')" style="color:#c17f3e;border-color:#c17f3e">● Orange</button>
+      <button class="sp-opt" data-accent="blue" onclick="setAccent('blue')" style="color:#3b82f6;border-color:#3b82f6">● Blue</button>
+      <button class="sp-opt" data-accent="green" onclick="setAccent('green')" style="color:#16a34a;border-color:#16a34a">● Green</button>
+      <button class="sp-opt" data-accent="purple" onclick="setAccent('purple')" style="color:#9333ea;border-color:#9333ea">● Purple</button>
+      <button class="sp-opt" data-accent="red" onclick="setAccent('red')" style="color:#dc2626;border-color:#dc2626">● Red</button>
+      <button class="sp-opt" data-accent="pink" onclick="setAccent('pink')" style="color:#ec4899;border-color:#ec4899">● Pink</button>
+      <button class="sp-opt" data-accent="teal" onclick="setAccent('teal')" style="color:#0d9488;border-color:#0d9488">● Teal</button>
+    </div>
+  </div>
   <hr class="sp-divider">
   <div class="sp-section">
     <span class="sp-label">💾 Manual Backup</span>
@@ -642,12 +687,14 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 <div class="tabs-bar">
   <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
   <button class="tab" onclick="switchTab('drivers')">👥 Drivers</button>
+  <button class="tab" onclick="switchTab('calendar')">📅 Calendar</button>
   <button class="tab" onclick="switchTab('add')">➕ Add Driver</button>
 </div>
 
 <nav class="bottom-nav" id="bottom-nav" style="display:none">
   <button class="bn-tab active" id="bn-dashboard" onclick="switchTab('dashboard')"><span class="bn-icon">📊</span><span>Dashboard</span></button>
   <button class="bn-tab" id="bn-drivers" onclick="switchTab('drivers')"><span class="bn-icon">👥</span><span>Drivers</span></button>
+  <button class="bn-tab" id="bn-calendar" onclick="switchTab('calendar')"><span class="bn-icon">📅</span><span>Calendar</span></button>
   <button class="bn-tab" id="bn-add" onclick="switchTab('add')"><span class="bn-icon">➕</span><span>Add</span></button>
   <button class="bn-tab" id="bn-settings" onclick="toggleSettings()"><span class="bn-icon">⚙️</span><span>Settings</span></button>
 </nav>
@@ -676,6 +723,26 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
     <button class="btn primary" onclick="switchTab('add')">➕ Add</button>
   </div>
   <div id="driver-grid-wrap"><div class="empty">Loading…</div></div>
+</div>
+
+<div class="panel" id="tab-calendar">
+  <div class="card">
+    <div class="card-title">📅 Weekly Rent Calendar</div>
+    <div class="cal-controls">
+      <select class="cal-driver-sel" id="cal-driver" onchange="renderCalendar()">
+        <option value="">Select a driver…</option>
+      </select>
+      <select id="cal-year" onchange="renderCalendar()"></select>
+      <button class="btn sm accent" onclick="renderCalendar()">🔄 Refresh</button>
+    </div>
+    <div class="cal-wrap"><div id="cal-grid-wrap"><div class="empty">Select a driver above to view their payment calendar.</div></div></div>
+    <div class="cal-legend">
+      <span><span class="cal-legend-dot" style="background:var(--green-bg);border:1px solid var(--green)"></span> Paid week</span>
+      <span><span class="cal-legend-dot" style="background:var(--amber-bg);border:1px solid var(--amber)"></span> Partial</span>
+      <span><span class="cal-legend-dot" style="background:var(--red-bg);border:1px solid var(--red)"></span> Missed</span>
+      <span><span class="cal-legend-dot" style="background:var(--surface);border:2px solid var(--accent)"></span> Week start (click to mark)</span>
+    </div>
+  </div>
 </div>
 
 <div class="panel" id="tab-add">
@@ -888,9 +955,135 @@ function setFont(f){
   localStorage.setItem('crm-font',f);
   document.querySelectorAll('.sp-opt[data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===f));
 }
+function setAccent(a){
+  document.documentElement.setAttribute('data-accent',a==='orange'?'':a);
+  localStorage.setItem('crm-accent',a);
+  document.querySelectorAll('.sp-opt[data-accent]').forEach(b=>b.classList.toggle('active',b.dataset.accent===a));
+}
 function loadPreferences(){
   setTheme(localStorage.getItem('crm-theme')||'light');
   setFont(localStorage.getItem('crm-font')||'georgia');
+  setAccent(localStorage.getItem('crm-accent')||'orange');
+}
+
+// ═══════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════
+function initCalendar(){
+  const sel=document.getElementById('cal-year');
+  const y=new Date().getFullYear();
+  for(let i=y-2;i<=y+1;i++){
+    const o=document.createElement('option');
+    o.value=i; o.textContent=i;
+    if(i===y) o.selected=true;
+    sel.appendChild(o);
+  }
+}
+
+function populateCalDrivers(){
+  const sel=document.getElementById('cal-driver');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Select a driver…</option>';
+  getDrivers().forEach(d=>{
+    const o=document.createElement('option');
+    o.value=d.id; o.textContent=d.name+' — '+d.plate;
+    if(d.id===cur) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+function getWeekNumber(date){
+  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  const dayNum=d.getUTCDay()||7;
+  d.setUTCDate(d.getUTCDate()+4-dayNum);
+  const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-yearStart)/86400000)+1)/7);
+}
+
+function getSundayWeekKey(date){
+  // Week ends Sunday — find the Sunday of that week
+  const d=new Date(date);
+  const day=d.getDay(); // 0=Sun
+  d.setDate(d.getDate()+(day===0?0:7-day));
+  return d.toISOString().slice(0,10);
+}
+
+function renderCalendar(){
+  const driverId=document.getElementById('cal-driver').value;
+  const year=parseInt(document.getElementById('cal-year').value);
+  const wrap=document.getElementById('cal-grid-wrap');
+  if(!driverId){wrap.innerHTML='<div class="empty">Select a driver above to view their payment calendar.</div>';return;}
+  const driver=getDrivers().find(d=>d.id===driverId);
+  if(!driver){wrap.innerHTML='<div class="empty">Driver not found.</div>';return;}
+
+  // Get marked weeks for this driver
+  const marks=driver.calMarks||{};
+  const today=new Date();
+  const driverStart=new Date(driver.start);
+
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dayHdrs=['S','M','T','W','T','F','S'];
+
+  let html='<div class="cal-grid">';
+  for(let m=0;m<12;m++){
+    const firstDay=new Date(year,m,1);
+    const lastDay=new Date(year,m+1,0);
+    html+=`<div class="cal-month"><div class="cal-month-hdr">${months[m]}</div>`;
+    html+=`<div class="cal-month-days">`;
+    // Day headers
+    dayHdrs.forEach(d=>{html+=`<div class="cal-day-hdr">${d}</div>`;});
+    // Empty cells before 1st
+    for(let e=0;e<firstDay.getDay();e++) html+=`<div class="cal-day empty"></div>`;
+    // Days
+    for(let day=1;day<=lastDay.getDate();day++){
+      const date=new Date(year,m,day);
+      const isToday=date.toDateString()===today.toDateString();
+      const isSunday=date.getDay()===0; // Sunday = week end
+      const weekKey=getSundayWeekKey(date);
+      const isWeekStart=date.getDay()===1; // Monday = start of rent week
+      const beforeStart=date<driverStart;
+      const inFuture=date>today;
+      let cls='cal-day';
+      if(isWeekStart&&!beforeStart) cls+=' wk';
+      if(isToday) cls+=' today';
+      if(marks[weekKey]==='paid') cls+=' paid';
+      else if(marks[weekKey]==='partial') cls+=' partial';
+      else if(marks[weekKey]==='missed'&&!inFuture&&!beforeStart) cls+=' missed';
+      const clickAttr=(!beforeStart&&isWeekStart)?`onclick="toggleWeekMark('${driverId}','${weekKey}')"` :'';
+      html+=`<div class="${cls}" ${clickAttr}>${day}</div>`;
+    }
+    // Trailing empties
+    const trailing=(7-lastDay.getDay()-1)%7;
+    for(let e=0;e<trailing;e++) html+=`<div class="cal-day empty"></div>`;
+    html+=`</div></div>`;
+  }
+  html+='</div>';
+
+  // Summary
+  const paidCount=Object.values(marks).filter(v=>v==='paid').length;
+  const partialCount=Object.values(marks).filter(v=>v==='partial').length;
+  const missedCount=Object.values(marks).filter(v=>v==='missed').length;
+  html+=`<div style="margin-top:12px;font-size:13px;color:var(--text2);display:flex;gap:16px;flex-wrap:wrap">
+    <span style="color:var(--green)">✅ ${paidCount} weeks paid</span>
+    <span style="color:var(--amber)">⚠️ ${partialCount} partial</span>
+    <span style="color:var(--red)">❌ ${missedCount} missed</span>
+  </div>`;
+
+  wrap.innerHTML=html;
+}
+
+async function toggleWeekMark(driverId,weekKey){
+  const idx=window._drivers.findIndex(d=>d.id===driverId);
+  if(idx<0) return;
+  if(!window._drivers[idx].calMarks) window._drivers[idx].calMarks={};
+  const cur=window._drivers[idx].calMarks[weekKey]||'';
+  // Cycle: none → paid → partial → missed → none
+  const next=cur===''?'paid':cur==='paid'?'partial':cur==='partial'?'missed':'';
+  if(next==='') delete window._drivers[idx].calMarks[weekKey];
+  else window._drivers[idx].calMarks[weekKey]=next;
+  window.saveData();
+  renderCalendar();
+  showToast(next?'Week marked as '+next:'Week mark cleared');
 }
 
 function toggleSettings(){
@@ -983,12 +1176,13 @@ function switchTab(t){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
-  const ti={dashboard:0,drivers:1,add:2}[t];
+  const ti={dashboard:0,drivers:1,calendar:2,add:3}[t];
   if(ti!==undefined) document.querySelectorAll('.tab')[ti].classList.add('active');
   document.querySelectorAll('.bn-tab').forEach(b=>b.classList.remove('active'));
   const bn=document.getElementById('bn-'+t); if(bn)bn.classList.add('active');
   if(t==='dashboard')renderDash();
   if(t==='drivers')renderGrid();
+  if(t==='calendar'){populateCalDrivers();renderCalendar();}
   if(t==='add'&&!editId)resetForm();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1403,6 +1597,7 @@ function showToast(msg){
 // ═══════════════════════════════════════
 loadPreferences();
 document.getElementById('week-lbl') && (document.getElementById('week-lbl').textContent=fmtDate(cwISO()));
+initCalendar();
 
 function checkMobile(){
   const m=window.innerWidth<=430;
