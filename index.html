@@ -2797,7 +2797,8 @@ async function deleteCarDoc(id){
 // INVOICES (separate folder, not tied to any car)
 // ═══════════════════════════════════════
 // Storage (under users/{uid}/docs): inv-list -> { items:[{id,name,type,uploadedAt}] }; cf-{ID} -> { file:{name,type,data} }
-const INV_CAP=900*1024;
+const INV_CHUNK=700000;        // characters per Firestore record (each record must stay under 1 MiB)
+const INV_MAX=25*1024*1024;    // largest invoice accepted (stored characters, about 18 MB of file)
 
 async function invLoad(){
   const user=window._currentUser;
@@ -2814,11 +2815,21 @@ async function invSave(items){
   try{await window._firebase.saveDocsToCloud(user.uid,'inv-list',{items});return true;}
   catch(e){console.error('Invoice list save failed:',e);alert('Could not save to the cloud:\n\n'+(e&&e.message?e.message:e));return false;}
 }
+// A file is stored as a small header record (cf-{id}) plus one record per chunk (cf-{id}-0, cf-{id}-1, ...).
+// Older invoices were stored as a single record with the data inside; both formats still open.
 async function invLoadFile(id){
   const user=window._currentUser;
   if(user&&window._firebase){
-    try{const r=await window._firebase.loadDocsFromCloud(user.uid,'cf-'+id); if(r&&r.file) return r.file;}
-    catch(e){console.error('Invoice file load failed:',e);}
+    try{
+      const r=await window._firebase.loadDocsFromCloud(user.uid,'cf-'+id);
+      if(r&&r.file){
+        if(r.file.data!==undefined) return r.file;
+        const n=r.file.chunks||0;
+        const parts=await Promise.all(Array.from({length:n},(_,i)=>window._firebase.loadDocsFromCloud(user.uid,'cf-'+id+'-'+i)));
+        if(parts.some(p=>!p||p.chunk===undefined)) throw new Error('part of the file is missing');
+        return {name:r.file.name,type:r.file.type,data:parts.map(p=>p.chunk).join('')};
+      }
+    }catch(e){console.error('Invoice file load failed:',e);}
   }
   try{return JSON.parse(localStorage.getItem('crm-cf-'+id)||'null');}catch(e){return null;}
 }
@@ -2828,20 +2839,34 @@ async function invSaveFile(id,file){
     try{localStorage.setItem('crm-cf-'+id,JSON.stringify(file));showToast('Saved on this device (not signed in)');return true;}
     catch(e){alert('Could not save this file on this device — storage is full. Sign in with Google to store files in the cloud.');return false;}
   }
-  try{await window._firebase.saveDocsToCloud(user.uid,'cf-'+id,{file});return true;}
-  catch(e){
+  const data=file.data||'';
+  const n=Math.max(1,Math.ceil(data.length/INV_CHUNK));
+  let written=0;
+  try{
+    for(let i=0;i<n;i++){
+      await window._firebase.saveDocsToCloud(user.uid,'cf-'+id+'-'+i,{chunk:data.slice(i*INV_CHUNK,(i+1)*INV_CHUNK)});
+      written++;
+    }
+    // header goes last, so a half-finished upload is never listed
+    await window._firebase.saveDocsToCloud(user.uid,'cf-'+id,{file:{name:file.name,type:file.type,chunks:n}});
+    return true;
+  }catch(e){
     console.error('Invoice file save failed:',e);
-    alert('Could not save to the cloud:\n\n'+(e&&e.message?e.message:e)+'\n\nThe invoice was not added. Try a smaller file.');
+    for(let i=0;i<written;i++){try{await window._firebase.deleteDocsFromCloud(user.uid,'cf-'+id+'-'+i);}catch(_){}}
+    alert('Could not save to the cloud:\n\n'+(e&&e.message?e.message:e)+'\n\nThe invoice was not added. Check your internet connection and try again.');
     return false;
   }
 }
 async function invDeleteFile(id){
   try{localStorage.removeItem('crm-cf-'+id);}catch(e){}
   const user=window._currentUser;
-  if(user&&window._firebase){
-    try{await window._firebase.deleteDocsFromCloud(user.uid,'cf-'+id);}
-    catch(e){console.error('Invoice file delete failed:',e);}
-  }
+  if(!user||!window._firebase) return;
+  try{
+    const r=await window._firebase.loadDocsFromCloud(user.uid,'cf-'+id);
+    const n=(r&&r.file&&r.file.chunks)||0;
+    for(let i=0;i<n;i++) await window._firebase.deleteDocsFromCloud(user.uid,'cf-'+id+'-'+i);
+    await window._firebase.deleteDocsFromCloud(user.uid,'cf-'+id);
+  }catch(e){console.error('Invoice file delete failed:',e);}
 }
 
 async function renderInvoices(){
@@ -2867,10 +2892,8 @@ async function handleInvUpload(input){
   try{
     showToast('⏳ Uploading '+name+'…');
     const out=await compressImage(file);
-    if(out.data.length>INV_CAP){
-      alert('This file is too large to store.\n\n'+(out.type==='pdf'
-        ? 'PDFs cannot be shrunk automatically. Please use a smaller PDF, or photograph the page instead.'
-        : 'Please try a smaller photo.'));
+    if(out.data.length>INV_MAX){
+      alert('This file is over 18 MB, which is too large to store. Please use a smaller file.');
       return;
     }
     const id=uid();
